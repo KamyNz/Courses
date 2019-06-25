@@ -1,0 +1,23 @@
+info.sites2num <-
+function(x = dummy.info){
+	# info.sites2num
+	# Converts a matrix of informative sites to a matrix
+	# that can be used by the "dist" function.
+	ncx <- ncol(x)
+	nrx <- nrow(x)
+	r.nam <- attributes(x)$row.names
+	c.nam <- names(x)
+	bases <- c("A","T","G","C")
+	res <- matrix(0, nrow=nrx, ncol=4*ncx, dimnames=list(r.nam, paste(rep(c.nam, each=4), rep(bases, ncx), sep="")))
+	l <- 0 # Index for column of res
+	for(i in 1:ncx){
+		# For each column of the original matrix
+		k <- 0 # Index for the base
+		for(j in 1:4){
+			k <- k+1
+			l <- l + 1
+			res[,l] <- 1*(x[,i] == bases[j])
+		}
+	}
+	res
+}

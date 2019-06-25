@@ -1,0 +1,23 @@
+likeness.boot <-
+function(de=d.t0, da=e.t0, B=100){
+	# likeness.boot
+	# Obtains a vector with likeness between an original dendrogram: de
+	# (de must be a dendrogram produced by "hclust" from matrix "da")
+	# and B bootstrap replicates of such dendrogram.
+	
+	# Recover the method and distance method.
+	me <- de$method
+	dis.me <- de$dist.method
+	res <- rep(NA, B) # An empty vector to contain the results.
+	
+	n.c <- ncol(da)
+
+	# Loop to obtain each value of likeness using function
+	# compare.hclust(x = d.t0, y = d.t10, give.matrix = FALSE, do.cat = FALSE)
+	for(i in 1:B){
+		sam <- sample(c(1:n.c), size=n.c, replace=TRUE)
+		db <- hclust(dist(da[,sam], method=dis.me), method=me)
+		res[i] <- compare.hclust(x = de, y = db, give.matrix = FALSE, do.cat = FALSE)
+	}
+	res
+}

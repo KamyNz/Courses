@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1561462918729.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "143143858",
+    "id" : "149F581A",
+    "lastKnownWriteTime" : 1561472168,
+    "last_content_update" : 1561472168730,
+    "path" : "~/Documents/CENICANA-temp/00_CABANA_Course1/from_Octavio/00_day1.R",
+    "project_path" : "from_Octavio/00_day1.R",
+    "properties" : {
+        "cursorPosition" : "9,0",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

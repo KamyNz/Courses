@@ -1,0 +1,136 @@
+AMA <-
+function(mat){
+	# AMA - Select a set of accessions with all Marker/Allele combinations
+	# Octavio Martinez (omartine@langebio.cinvestav.mx)
+	# August 2015
+	# Computational Biology Lab ( http://computational.biology.langebio.cinvestav.mx/ )
+	# Langebio, Cinvestav, Irapuato.
+	# This software is distributed under the terms of the GNU General
+	# Public License "GPL-3" ( http://fsf.org/ ) ’Share and Enjoy.’
+	# REVISED 20 Ago. See: GM_108 (internal use)
+	# Obtains a set of optimal or near-optimal accessions with the
+	# complete set of all marker/aleles and a small size (number of accessions)
+	## INPUT
+	# mat - Matrix (or data.frame) with accessions as rows and columns as marker-alleles.
+	# Data in "mat" can be allele presence / absence (1, 0), frequencies or
+	# any numeric scale, but zero means the ABSENCE of the marker/allele.
+	# Not missing data (NA’s) are allowed!
+	# BOTH rows (accessions) and columns (marker/allele combinations)
+	# must be named with DIFFERENT names
+	## OUTPUT. A list with the following components:
+	# "Set.names" - Names of the accessions (rows) that enter into the solving set
+	# "Set.nums" - Numbers corresponding to the rows that enter into the solving set
+	# "Richness" - Accumulated richness in each step of the algorithm
+	# "Ties" - Cases of ties (solved by using the "rearesst" accession)
+	# "MinMat" - Matrix containing the accessions that solve the problem.
+	# "rho" - Rareness coefficients for the original accessions.
+	# "nam.unique" - Names of marker/alleles that are "unique" (appears only in one accession)
+	# "acc.unique" - Names of accessions that have unique marker/allele combinations.
+	# "on.acc" - Original number of accessions in the input matrix (mat)
+	# "comment" - A comment that is printed as output.
+	# "call" - The call of the function.
+	# NOTE: Output is returned invisibly
+	# (thus you must assign it to see particular components!)
+the.call <- match.call()
+sale <- function(){
+comment <- paste("\nA set of ",length(G.num)," accessions contains all ",n.c,
+" marker/alleles from the collection of ",n.r,
+" accessions.\nThe set of selected accessions represents the ",
+round(100*length(G.num)/n.r,2),"% of the original.\n", sep="")
+res <- list(G.set, G.num, curr.rich, ties, mat[sort(G.num),], acc.rear, nam.unique,
+acc.unique, on.acc, comment, the.call)
+names(res) <- c("Set.names", "Set.nums", "Richness", "Ties", "MinMat", "rho", "nam.unique",
+"acc.unique", "on.acc", "comment", "call")
+cat(comment)
+return(invisible(res))
+}
+if(min(mat)<0) stop("Input cannot have negative elements!")
+to.test <- apply(mat, 2, mean)
+if(length(mat[is.na(mat)==TRUE])>0) {
+stop("Sorry; NA values are not accepted in the input matrix or data.frame!")}
+if(length(to.test[to.test==0])>0){
+warning(paste(length(to.test[to.test==0]),
+"columns from the input add to zero; those will be eliminated!"))
+mat <- mat[,to.test>0]
+}
+n.r <- nrow(mat)
+on.acc <- n.r
+n.c <- ncol(mat)
+if(class(mat)=="data.frame") mat <- as.matrix(mat)
+mal.mean <- apply(mat, 2, mean) # Means for each marker / allele
+acc.rear <- NULL # This is the rearness coefficient to break ties
+for(i in 1:n.r){
+acc.rear <- c(acc.rear, sqrt(sum((mat[i,]-mal.mean)^2)/n.c))
+}
+names(acc.rear) <- c(1:n.r)
+pa <- 1*(mat>0) # Is the matrix of presence / absence
+acc.names <- attributes(mat)$dimnames[[1]]
+names(acc.names) <- c(1:n.r)
+mal.names <- attributes(mat)$dimnames[[2]]
+names(mal.names) <- c(1:n.c)
+G.set <- NULL
+G.num <- NULL
+col.sum <- apply(pa, 2, sum)
+nam.unique <- names(col.sum[col.sum==1])
+for(i in 1:length(nam.unique)){
+temp <- pa[,attributes(pa)$dimnames[[2]]==nam.unique[i]]
+G.set <- c(G.set, names(temp[temp==1]))
+G.num <- c(G.num, c(1:n.r)[acc.names==names(temp[temp==1])])
+}
+G.set <- unique(G.set)
+acc.unique <- G.set
+G.num <- unique(G.num)
+G.alleles <- rep(0, n.c)
+for(i in 1:length(G.num)){
+temp <- pa[G.num[i], ]
+G.alleles <- G.alleles + temp
+G.alleles <- 1*(G.alleles > 0)
+}
+ curr.set <- G.set
+curr.rich <- sum(G.alleles)
+acum.rich <- sum(G.alleles)
+ties <- NULL
+obj <- acum.rich
+n.loop <- 1
+if(sum(G.alleles) == n.c) sale()
+while(obj<n.c){
+n.loop <- n.loop + 1
+gain <- rep(0, n.r)
+names(gain) <- c(1:n.r)
+for(i in 1:n.r){
+gain[i] <- sum(1*((pa[i,]-G.alleles)>0))
+}
+m.rich <- max(gain)
+if(m.rich==0) sale()
+richest <- gain[gain==m.rich]
+n.richest <- length(richest)
+if(n.richest>1){
+if(is.null(ties)){
+ties <- paste(names(richest), collapse=", ")
+names(ties) <- n.loop
+} else {
+ties <- c(ties, paste(names(richest), collapse=", "))
+names(ties)[length(ties)] <- n.loop
+}
+richest.acc <- as.integer(names(richest))
+rear.rich <- acc.rear[richest.acc]
+max.rea <- max(rear.rich)
+selected <- richest.acc[rear.rich==max.rea]
+G.set <- c(G.set, acc.names[selected])
+G.num <- c(G.num, selected)
+# Capture the new alleles.
+G.alleles <- G.alleles + pa[selected, ]
+G.alleles <- 1*(G.alleles > 0)
+} else {
+selected <- as.integer(names(richest))
+G.set <- c(G.set, acc.names[selected])
+G.num <- c(G.num, selected)
+G.alleles <- G.alleles + pa[selected, ]
+G.alleles <- 1*(G.alleles > 0)
+}
+curr.rich <- c(curr.rich, sum(G.alleles))
+obj <- sum(G.alleles)
+}
+names(G.set) <- NULL
+sale()
+}

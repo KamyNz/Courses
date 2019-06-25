@@ -1,0 +1,299 @@
+e.t10<-e.t0;e.t20<-e.t0;e.t30<-e.t0;e.t40<-e.t0;e.t50<-e.t0;e.t60<-e.t0
+head(temp)
+attributes(e.t0)$dimnames[[1]]
+attributes(e.t0)$dimnames[[1]]==ac.type$key
+for(i in 1:8){#
+e.t0[i,] <- as.vector(temp$z0[temp$ac==ac.type$key[i]])#
+e.t10[i,] <- as.vector(temp$z10[temp$ac==ac.type$key[i]])#
+e.t20[i,] <- as.vector(temp$z20[temp$ac==ac.type$key[i]])#
+e.t30[i,] <- as.vector(temp$z30[temp$ac==ac.type$key[i]])#
+e.t40[i,] <- as.vector(temp$z40[temp$ac==ac.type$key[i]])#
+e.t50[i,] <- as.vector(temp$z50[temp$ac==ac.type$key[i]])#
+e.t60[i,] <- as.vector(temp$z60[temp$ac==ac.type$key[i]]) #
+}
+i
+i
+length(e.t0[i,])
+length(temp$z0[temp$ac==ac.type$key[i]])
+head(temp)
+ac.type$key[i]
+e.t0 <- matrix(NA, nrow=8, ncol=25645, dimnames=list(ac.type$key, temp$id[temp$ac==ac.type$key[1]]))
+e.t10<-e.t0;e.t20<-e.t0;e.t30<-e.t0;e.t40<-e.t0;e.t50<-e.t0;e.t60<-e.t0
+for(i in 1:8){#
+e.t0[i,] <- as.vector(temp$zT0[temp$ac==ac.type$key[i]])#
+e.t10[i,] <- as.vector(temp$zT10[temp$ac==ac.type$key[i]])#
+e.t20[i,] <- as.vector(temp$zT20[temp$ac==ac.type$key[i]])#
+e.t30[i,] <- as.vector(temp$zT30[temp$ac==ac.type$key[i]])#
+e.t40[i,] <- as.vector(temp$zT40[temp$ac==ac.type$key[i]])#
+e.t50[i,] <- as.vector(temp$zT50[temp$ac==ac.type$key[i]])#
+e.t60[i,] <- as.vector(temp$zT60[temp$ac==ac.type$key[i]]) #
+}
+dist(e.t0)
+head(zT0[,1:5])
+head(e.zT0[,1:5])
+head(e.z0[,1:5])
+head(e.t0[,1:5])
+plot(hclust(dist(e.t0), "average")
+)
+d.t0 <- hclust(dist(e.t0), "average")#
+d.t10 <- hclust(dist(e.t10), "average")#
+d.t20 <- hclust(dist(e.t20), "average")#
+d.t30 <- hclust(dist(e.t30), "average")#
+d.t40 <- hclust(dist(e.t40), "average")#
+d.t50 <- hclust(dist(e.t50), "average")#
+d.t60 <- hclust(dist(e.t60), "average")
+pdf("../LaTeX_GACD/Fig19A.pdf")#
+plot(d.t0, main="Cluster at time 0 DAA")#
+dev.off()#
+pdf("../LaTeX_GACD/Fig19B.pdf")#
+plot(d.t10, main="Cluster at time 10 DAA")#
+dev.off()#
+pdf("../LaTeX_GACD/Fig19C.pdf")#
+plot(d.t20, main="Cluster at time 20 DAA")#
+dev.off()#
+pdf("../LaTeX_GACD/Fig19D.pdf")#
+plot(d.t30, main="Cluster at time 30 DAA")#
+dev.off()
+date()
+date()
+date()
+5+9+7+3+1+1
+5+4+2+3+1+1
+3^6
+.01^(1/6)
+0.4641589^6
+date()
+date()
+date()
+date()
+plot(d.t40, main="Cluster at time 40 DAA")
+plot(d.t50, main="Cluster at time 50 DAA")
+plot(d.t60, main="Cluster at time 60 DAA")
+pdf("../LaTeX_GACD/Fig20A.pdf")#
+plot(d.t40, main="Cluster at time 40 DAA")#
+dev.off()#
+pdf("../LaTeX_GACD/Fig20B.pdf")#
+plot(d.t50, main="Cluster at time 50 DAA")#
+dev.off()#
+pdf("../LaTeX_GACD/Fig20C.pdf")#
+plot(d.t60, main="Cluster at time 60 DAA")#
+dev.off()
+d.t0
+d.t0[[1]]
+? hclust
+d.t0[[2]]
+d.t0[[3]]
+d.t0[[4]]
+class(d.t0)
+hclust2sets <- function(x){}
+#hclust2sets <- edit(hclust2sets)
+names(d.t0)
+hclust2sets <- edit(hclust2sets)
+hclust2sets(3)
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0) # Gives the number of clusters (n-1)
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0) # Gives the empty list
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0) # Gives the empty list
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0) # Gives the empty list
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0) # Gives the clusters with original elements
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0) # Gives the clusters with original elements
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0) # Gives the clusters with original elements
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0) # Gives the clusters with original elements
+as.integer("CM.D")
+is.integer("CM.D")
+is.integer(-1)
+is.integer(1)
+is.integer(1)
+is.integer(c(1))
+is.numeric(1)
+is.numeric(-1)
+is.numeric(-10)
+is.numeric(-11)
+is.numeric("CM.D")
+hclust2sets <- edit(hclust2sets)
+hclust2sets(t.t0)
+hclust2sets(d.t0)
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0)
+class(hclust2sets(d.t0))
+hclust2sets(d.t0)[5]
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0)
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0)
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0)
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0)
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0)
+hclust2sets <- edit(hclust2sets)
+hclust2sets <- edit()
+hclust2sets(d.t0)
+hclust2sets <- edit(hclust2sets)
+hclust2sets(d.t0)
+hclust2sets(d.t10)
+compare.hclust <- function(x, y){}
+compare.hclust <- edit(compare.hclust)
+s.t0 <- hclust2sets(d.t0)
+s.t10 <- hclust2sets(d.t10)
+length(s.t0)
+lapply(s.t0, length)
+as.vector(lapply(s.t0, length))
+unlist(lapply(s.t0, length))
+unlist(lapply(s.t10, length))
+? union
+setequal(s.t0[[1]], s.t10[[1]])
+setequal(s.t0[[1]], s.t10[[2]])
+compare.hclust <- edit(compare.hclust)
+compare.hclust()
+class(s.t0)
+class(d.t0)
+compare.hclust(d.t0, d.t10)
+compare.hclust <- edit(compare.hclust)
+compare.hclust(d.t0, d.t10) # Give matrix
+compare.hclust <- edit(compare.hclust)
+compare.hclust(d.t0, d.t10) # Give matrix
+sum(1*compare.hclust(d.t0, d.t10)) # Give number of equal clusters
+sum(1*compare.hclust(d.t0, d.t20)) # Give number of equal clusters
+sum(1*compare.hclust(d.t0, d.t30)) # Give number of equal clusters
+sum(1*compare.hclust(d.t0, d.t40)) # Give number of equal clusters
+sum(1*compare.hclust(d.t0, d.t50)) # Give number of equal clusters
+sum(1*compare.hclust(d.t0, d.t60)) # Give number of equal clusters
+compare.hclust(d.t0, d.t30)
+1*compare.hclust(d.t0, d.t10)
+1*compare.hclust(d.t0, d.t30)
+as.dist(1*compare.hclust(d.t0, d.t30))
+compare.hclust(d.t0, d.t0)
+lapply(s.t0, length)
+as.vector(lapply(s.t0, length))
+unlist(lapply(s.t0, length))
+? diag
+diag(compare.hclust(d.t0, d.t0))
+1*diag(compare.hclust(d.t0, d.t0))
+sum(1*diag(compare.hclust(d.t0, d.t0)))
+? triang.sup
+? trian
+? diag
+upper.tri(compare.hclust(d.t0, d.t0))
+compare.hclust(d.t0, d.t0)[upper.tri(compare.hclust(d.t0, d.t0))]
+head(e.t0)
+class(e.t0)
+attributes(e.t0)$dim
+d.t0.s <- hclust(dist(e.t0[,1:5000]), "average")
+compare.hclust(d.t0, d.tp.s)
+compare.hclust(d.t0, d.t0.s)
+plot(d.t0.s)
+compare.hclust <- edit(compare.hclust)
+compare.hclust()
+compare.hclust <- edit(compare.hclust)
+compare.hclust()
+compare.hclust <- edit(compare.hclust)
+compare.hclust()
+compare.hclust <- edit(compare.hclust)
+compare.hclust()
+compare.hclust <- edit(compare.hclust)
+compare.hclust()
+compare.hclust <- edit(compare.hclust)
+compare.hclust()
+compare.hclust <- edit(compare.hclust)
+compare.hclust()
+compare.hclust <- edit(compare.hclust)
+compare.hclust()
+compare.hclust <- edit(compare.hclust)
+compare.hclust()
+compare.hclust(d.t0, d.t10)
+compare.hclust(d.t0, d.t0)
+compare.hclust <- edit(compare.hclust)
+compare.hclust(d.t0, d.t10)
+compare.hclust(d.t0, d.t0)
+compare.hclust <- edit(compare.hclust)
+compare.hclust(x=d.t0, y=d.t10, give.matrix = FALSE, do.cat = FALSE)
+compare.hclust(x=d.t0, y=d.t0, give.matrix = FALSE, do.cat = FALSE)
+7*6/2
+comp.dend <- data-frame(d1=rep("",21), d2=rep("",21), lik=rep(NA,21), stringsAsFactors=F)
+comp.dend <- data.frame(d1=rep("",21), d2=rep("",21), lik=rep(NA,21), stringsAsFactors=F)
+temp.list <- list(d.t0, d.t10, d.t20, d.t30, d.t40, d.t50, d.t60)
+names(temp.list) <- c("d.t0", "d.t10", "d.t20", "d.t30", "d.t40", "d.t50", "d.t60")
+compare.hclust(temp.list[[1]], temp.list[[5]])
+compare.hclust(temp.list[[1]], temp.list[[6]])
+k <- 0#
+for(i in 1:6){#
+for(j in (i+1):7){#
+k <- k+1#
+comp.dend$d1[k] <- names(temp.list)[i]#
+comp.dend$d2[k] <- names(temp.list)[j]#
+comp.dend$lik[k] <- compare.hclust(temp.list[[i]], temp.list[[j]])#
+}#
+}
+comp.dend
+head(comp.dend)
+summary(comp.dend$lik)
+comp.dend[comp.dend$lik>0,]
+compare.hclust(d.t10, d.t50, give.matrix=T)
+head(compare.hclust)
+hclust2sets(d.t10)
+hclust2sets(d.t50)
+head(compare.hclust)
+likeness <- c("hclust2sets", "compare.hclust")
+likeness <- c("likeness", likeness)
+likeness
+dir()
+dump(list=likeness, file="LikenessFun.txt")
+705*5
+1125-142
+3525*9
+141.28*9
+180*9
+date()
+date()
+lsf.str()
+getwd()
+dir()
+source("LikenessFun.txt")
+ls(patt="lik")
+likeness
+likeness # A vector with the names of the functions
+ls(patt="t0")
+ls(patt="d.t")
+class(d.t0)
+names(d.t0)
+d.t0$merge # The matrix of "merges"
+d.t0$labels # The vector of labels (units in the dendrogram)
+hclust2sets
+hclust2sets(d.t0) # Dendrogram of Figure 19 A seen as sets:
+hclust2sets(d.t10) # Dendrogram of Figure 19 b seen as sets:
+likeness
+compare.hclust
+compare.hclust(x=d.t0, y=d.t10, give.matrix = FALSE, do.cat = FALSE)
+compare.hclust(x=d.t0, y=d.t10, give.matrix = FALSE, do.cat = TRUE)
+compare.hclust(x=d.t0, y=d.t10, give.matrix = TRUE, do.cat = TRUE)
+? factorial
+nB <- function(n){(factorial(2*n-3))/((2^(n-2))*factorial(n-2)}
+nB <- function(n){}
+nB <- edit(nB)
+nB(2)
+nB(3)
+nB(4)
+nB(10)
+nB(8)
+1/135135
+7*6/2
+1*compare.hclust(d.t10, d.t50, give.matrix=T)
+library(pvclust)
+union
+setfiff
+setdiff
+intersect
+? match
+dir("../")
+dir("../RStaffStuff/")
+save.image("../RStaffStuff/RNAseqStuff.RData")
+q()
