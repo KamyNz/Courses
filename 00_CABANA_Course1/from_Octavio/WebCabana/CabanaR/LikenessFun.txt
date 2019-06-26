@@ -1,0 +1,71 @@
+likeness <-
+c("likeness", "hclust2sets", "compare.hclust")
+hclust2sets <-
+function(x){
+	# hclust2sets
+	# Converts an hclust object to sets of the original elements
+	if(class(x) != "hclust") stop("Argument x must be an hclust object!")
+	# names of x:
+	# 1 - "merge", 2 - "height", 3 - "order", 4 - "labels", 
+	# 5 - "method", 6 - "call", 7 - "dist.method".
+	m <- x[[1]] # The merge component
+	la <- x[[4]] # Labels (names of OTUs)
+	n.c <- nrow(m) # Number of clusters (n-1)
+
+	# print(m)
+	# print(la)
+	# NOTE that NEGATIVE numbers within m are the original elements
+	clu <- vector("list", n.c)
+	names(clu) <- paste("clu", c(1:n.c), sep=".")
+	for(i in 1:n.c){
+		# for each row of m (cluster)
+		for(j in 1:2){
+			# For first and second column
+			if(m[i,j]<0){
+				# If the element is negative
+				clu[[i]] <- unique(c(clu[[i]], la[-m[i,j]])) # The label
+				m[i,j] <- 0
+			}
+		}
+	}
+
+	# Now clusters have the original values and m contains
+	# only positive (or 0) values
+	for(i in 1:n.c){
+		for(j in 1:2){
+			if(m[i,j]>0){
+				# We need to include the members of the corresponding clusters
+				clu[[i]] <- union(clu[[i]], clu[[m[i,j]]])
+				}
+		}
+	}
+	clu
+	}
+compare.hclust <-
+function(x=d.t0, y=d.t10, give.matrix = FALSE, do.cat = FALSE){
+	# compare.hclust
+	# Compare two products of hclust to give the number of shared clusters
+	# depends on "hclust2sets"
+	x.sets <- hclust2sets(x)
+	y.sets <- hclust2sets(y)
+	n.c <- length(x.sets)
+	ind <- c(1:n.c)
+	if(n.c != length(y.sets)) stop("x and y are not comparable.")
+	res <- matrix(FALSE, nrow=n.c, ncol=n.c, dimnames=list(ind, ind))
+	for(i in 1:n.c){
+		for(j in 1:n.c){
+			res[i, j] <- setequal(x.sets[[i]], y.sets[[j]])
+		}
+	}
+	if(give.matrix){
+		return(res)
+	} else {
+		n.e.d <- sum(1*diag(res)) # Number of equalities in main diagonal
+		e.o.d <- sum(1*res[upper.tri(res)]) # Number of equalities out main diagonal
+		eq <- n.e.d+e.o.d-1
+		if(do.cat){
+			cat("\nValid Equalities / Possible Equalities ", eq, "/", n.c-1, " = " , eq / (n.c-1), "\n", sep='')
+		}
+		return(eq / (n.c-1))
+	}
+}

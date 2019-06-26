@@ -1,0 +1,972 @@
+##### CabanaFunctions.txt
+# Octavio Martinez ( octavio.martinez@cinvestav.mx )
+
+# R functions for the workshop
+# Genomic Analysis of Crop Biodiversity using R.
+# Tuesday 25 - Friday 28 June 2019
+# LANGEBIO, Cinvestav. Irapuato,  Guanajuato, Mexico
+
+# You can use this file with "source" to include the functions below
+# into your R session.
+# NOTE: Some of the functions are of general use but others assume
+# some specific data.
+
+# INDEX of functions.
+# adhoc(x = incidence, g1 = "TE", g2 = "PA", dist.method = "euclidean", clu.method = "average", leg.place = "topright", branchlength = 1.6)  
+# AMA(mat)  
+# compare.hclust(x = d.t0, y = d.t10, give.matrix = FALSE, do.cat = FALSE)  
+# dist2data(inDist)  
+# hclust2sets(x)  
+# info.sites(x = my.dummy, out.as.matrix = TRUE)  
+# info.sites2num(x = dummy.info)  
+# likeness.boot(de = d.t0, da = e.t0, B = 100)  
+# mutateDNA(x = randomDNA(50), how.many = 5)  
+# myColorDendrogram(hc, y, main = "", branchlength = 0.7, labels = NULL, xlab = NULL, sub = NULL, ylab = "", cex.main = NULL, lwd = par("lwd"), cex = 0.2)  
+# permute.seg(y = segregate.dis(sim2classes()), cont = "all.within", versus = "all.other", B = 1000, conf.level = 0.95, alternative = "less", print.results = TRUE, onlyPs = FALSE, perform.permutations = TRUE)  
+# randomDNA(n)  
+# segregate.dis(x = sim2classes(), classes = rep(c("c1", "c2"), each = 10), method = "euclidean", sepa = ".")  
+# segregate.plot(y = segregate.dis())  
+# segregate.summary(y = segregate.dis())  
+# segregate.test(y = segregate.dis(), cont = "a.a", versus = "all.other")  
+# segregated2matrix(y = segregate.dis(), stat = "mean")  
+# sim2classes(c1 = 10, c2 = 10, v = 10, mc1 = 0, sc1 = 1, mc2 = 0, sc2 = 1)  
+# SNP.dist(x = info.sites())  
+# two.states.den(s1 = "DG", s2 = "NL", cex = 0.5, main = "")  
+# write.latex(x, file, row.names = TRUE, col.names = TRUE)  
+
+### Vector of function names:
+CabanaFunctions <-
+c("CabanaFunctions", "adhoc", "AMA", "compare.hclust", "dist2data", 
+"hclust2sets", "info.sites", "info.sites2num", "likeness.boot", 
+"mutateDNA", "myColorDendrogram", "permute.seg", "randomDNA", 
+"segregate.dis", "segregate.plot", "segregate.summary", "segregate.test", 
+"segregated2matrix", "sim2classes", "SNP.dist", "two.states.den", 
+"write.latex")
+# Functions begin:
+adhoc <-
+function(x=incidence, g1="TE", g2="PA", dist.method="euclidean", clu.method="average", leg.place="topright", branchlength=1.6){
+	# adhoc
+	# Makes a dendrogram for two groups of the maize accession
+	# and test if those groups are significantly segregated
+	# See Box 20
+	inc <- incidence[(substring(attributes(x)$dimnames[[1]],1,2)==g1)|(substring(attributes(x)$dimnames[[1]],1,2)==g2),]
+	
+	# Output will be ONLY to screen
+	cat("Analysis of groups ", g1, " and ", g2, "\nTotal of accessions = ", nrow(inc), "\n", sep='')
+	group <- substring(attributes(inc)$dimnames[[1]],1,2)
+	cat("\nNumber of accessions per:\n")
+	print(table(group))
+	
+	dis <- dist(inc, method=dist.method)
+	col <- group
+	col[col==g1] <- "red"
+	col[col==g2] <- "blue"
+	main.tit <- paste("Dendrogram of accessions from", g1, "and", g2)
+	myColorDendrogram(hclust(dis, method=clu.method), y=col, branchlength=branchlength)
+	title(main=main.tit)
+	legend(leg.place, bty="n", legend=c(g1, g2), lty=1, col=c("red", "blue"))
+	
+	seg <- segregate.dis(inc, classes=group)
+	cat("\nSummary of distances:\n")
+	print(segregate.summary(seg))
+	
+	contrast <- paste(g1, g2, sep=".")
+	segregate.test(seg, cont=contrast)
+}
+AMA <-
+function(mat){
+	# AMA - Select a set of accessions with all Marker/Allele combinations
+	# Octavio Martinez (omartine@langebio.cinvestav.mx)
+	# August 2015
+	# Computational Biology Lab ( http://computational.biology.langebio.cinvestav.mx/ )
+	# Langebio, Cinvestav, Irapuato.
+	# This software is distributed under the terms of the GNU General
+	# Public License "GPL-3" ( http://fsf.org/ ) ’Share and Enjoy.’
+	# REVISED 20 Ago. See: GM_108 (internal use)
+	# Obtains a set of optimal or near-optimal accessions with the
+	# complete set of all marker/aleles and a small size (number of accessions)
+	## INPUT
+	# mat - Matrix (or data.frame) with accessions as rows and columns as marker-alleles.
+	# Data in "mat" can be allele presence / absence (1, 0), frequencies or
+	# any numeric scale, but zero means the ABSENCE of the marker/allele.
+	# Not missing data (NA’s) are allowed!
+	# BOTH rows (accessions) and columns (marker/allele combinations)
+	# must be named with DIFFERENT names
+	## OUTPUT. A list with the following components:
+	# "Set.names" - Names of the accessions (rows) that enter into the solving set
+	# "Set.nums" - Numbers corresponding to the rows that enter into the solving set
+	# "Richness" - Accumulated richness in each step of the algorithm
+	# "Ties" - Cases of ties (solved by using the "rearesst" accession)
+	# "MinMat" - Matrix containing the accessions that solve the problem.
+	# "rho" - Rareness coefficients for the original accessions.
+	# "nam.unique" - Names of marker/alleles that are "unique" (appears only in one accession)
+	# "acc.unique" - Names of accessions that have unique marker/allele combinations.
+	# "on.acc" - Original number of accessions in the input matrix (mat)
+	# "comment" - A comment that is printed as output.
+	# "call" - The call of the function.
+	# NOTE: Output is returned invisibly
+	# (thus you must assign it to see particular components!)
+the.call <- match.call()
+sale <- function(){
+comment <- paste("\nA set of ",length(G.num)," accessions contains all ",n.c,
+" marker/alleles from the collection of ",n.r,
+" accessions.\nThe set of selected accessions represents the ",
+round(100*length(G.num)/n.r,2),"% of the original.\n", sep="")
+res <- list(G.set, G.num, curr.rich, ties, mat[sort(G.num),], acc.rear, nam.unique,
+acc.unique, on.acc, comment, the.call)
+names(res) <- c("Set.names", "Set.nums", "Richness", "Ties", "MinMat", "rho", "nam.unique",
+"acc.unique", "on.acc", "comment", "call")
+cat(comment)
+return(invisible(res))
+}
+if(min(mat)<0) stop("Input cannot have negative elements!")
+to.test <- apply(mat, 2, mean)
+if(length(mat[is.na(mat)==TRUE])>0) {
+stop("Sorry; NA values are not accepted in the input matrix or data.frame!")}
+if(length(to.test[to.test==0])>0){
+warning(paste(length(to.test[to.test==0]),
+"columns from the input add to zero; those will be eliminated!"))
+mat <- mat[,to.test>0]
+}
+n.r <- nrow(mat)
+on.acc <- n.r
+n.c <- ncol(mat)
+if(class(mat)=="data.frame") mat <- as.matrix(mat)
+mal.mean <- apply(mat, 2, mean) # Means for each marker / allele
+acc.rear <- NULL # This is the rearness coefficient to break ties
+for(i in 1:n.r){
+acc.rear <- c(acc.rear, sqrt(sum((mat[i,]-mal.mean)^2)/n.c))
+}
+names(acc.rear) <- c(1:n.r)
+pa <- 1*(mat>0) # Is the matrix of presence / absence
+acc.names <- attributes(mat)$dimnames[[1]]
+names(acc.names) <- c(1:n.r)
+mal.names <- attributes(mat)$dimnames[[2]]
+names(mal.names) <- c(1:n.c)
+G.set <- NULL
+G.num <- NULL
+col.sum <- apply(pa, 2, sum)
+nam.unique <- names(col.sum[col.sum==1])
+for(i in 1:length(nam.unique)){
+temp <- pa[,attributes(pa)$dimnames[[2]]==nam.unique[i]]
+G.set <- c(G.set, names(temp[temp==1]))
+G.num <- c(G.num, c(1:n.r)[acc.names==names(temp[temp==1])])
+}
+G.set <- unique(G.set)
+acc.unique <- G.set
+G.num <- unique(G.num)
+G.alleles <- rep(0, n.c)
+for(i in 1:length(G.num)){
+temp <- pa[G.num[i], ]
+G.alleles <- G.alleles + temp
+G.alleles <- 1*(G.alleles > 0)
+}
+ curr.set <- G.set
+curr.rich <- sum(G.alleles)
+acum.rich <- sum(G.alleles)
+ties <- NULL
+obj <- acum.rich
+n.loop <- 1
+if(sum(G.alleles) == n.c) sale()
+while(obj<n.c){
+n.loop <- n.loop + 1
+gain <- rep(0, n.r)
+names(gain) <- c(1:n.r)
+for(i in 1:n.r){
+gain[i] <- sum(1*((pa[i,]-G.alleles)>0))
+}
+m.rich <- max(gain)
+if(m.rich==0) sale()
+richest <- gain[gain==m.rich]
+n.richest <- length(richest)
+if(n.richest>1){
+if(is.null(ties)){
+ties <- paste(names(richest), collapse=", ")
+names(ties) <- n.loop
+} else {
+ties <- c(ties, paste(names(richest), collapse=", "))
+names(ties)[length(ties)] <- n.loop
+}
+richest.acc <- as.integer(names(richest))
+rear.rich <- acc.rear[richest.acc]
+max.rea <- max(rear.rich)
+selected <- richest.acc[rear.rich==max.rea]
+G.set <- c(G.set, acc.names[selected])
+G.num <- c(G.num, selected)
+# Capture the new alleles.
+G.alleles <- G.alleles + pa[selected, ]
+G.alleles <- 1*(G.alleles > 0)
+} else {
+selected <- as.integer(names(richest))
+G.set <- c(G.set, acc.names[selected])
+G.num <- c(G.num, selected)
+G.alleles <- G.alleles + pa[selected, ]
+G.alleles <- 1*(G.alleles > 0)
+}
+curr.rich <- c(curr.rich, sum(G.alleles))
+obj <- sum(G.alleles)
+}
+names(G.set) <- NULL
+sale()
+}
+compare.hclust <-
+function(x=d.t0, y=d.t10, give.matrix = FALSE, do.cat = FALSE){
+	# compare.hclust
+	# Compare two products of hclust to give the number of shared clusters
+	# depends on "hclust2sets"
+	x.sets <- hclust2sets(x)
+	y.sets <- hclust2sets(y)
+	n.c <- length(x.sets)
+	ind <- c(1:n.c)
+	if(n.c != length(y.sets)) stop("x and y are not comparable.")
+	res <- matrix(FALSE, nrow=n.c, ncol=n.c, dimnames=list(ind, ind))
+	for(i in 1:n.c){
+		for(j in 1:n.c){
+			res[i, j] <- setequal(x.sets[[i]], y.sets[[j]])
+		}
+	}
+	if(give.matrix){
+		return(res)
+	} else {
+		n.e.d <- sum(1*diag(res)) # Number of equalities in main diagonal
+		e.o.d <- sum(1*res[upper.tri(res)]) # Number of equalities out main diagonal
+		eq <- n.e.d+e.o.d-1
+		if(do.cat){
+			cat("\nValid Equalities / Possible Equalities ", eq, "/", n.c-1, " = " , eq / (n.c-1), "\n", sep='')
+		}
+		return(eq / (n.c-1))
+	}
+}
+dist2data <-
+function(inDist) {
+# Function to convert a distance matrix (obtained with "dist") into a data.frame
+# Modified from
+# https://stackoverflow.com/questions/23474729/convert-object-of-class-dist-into-data-frame-in-r
+# SEE: GM_134.txt and GM_135.txt (in the "GenoMaiz" project) and 1_TheIdea in "EvalClusterDiff"
+
+  if (class(inDist) != "dist") stop("wrong input type")
+  A <- attr(inDist, "Size")
+  B <- if (is.null(attr(inDist, "Labels"))) sequence(A) else attr(inDist, "Labels")
+  if (isTRUE(attr(inDist, "Diag"))) attr(inDist, "Diag") <- FALSE
+  if (isTRUE(attr(inDist, "Upper"))) attr(inDist, "Upper") <- FALSE
+  data.frame(
+    row = B[unlist(lapply(sequence(A)[-1], function(x) x:A))],
+    col = rep(B[-length(B)], (length(B)-1):1),
+    value = as.vector(inDist), stringsAsFactors = FALSE)
+}
+hclust2sets <-
+function(x){
+	# hclust2sets
+	# Converts an hclust object to sets of the original elements
+	if(class(x) != "hclust") stop("Argument x must be an hclust object!")
+	# names of x:
+	# 1 - "merge", 2 - "height", 3 - "order", 4 - "labels", 
+	# 5 - "method", 6 - "call", 7 - "dist.method".
+	m <- x[[1]] # The merge component
+	la <- x[[4]] # Labels (names of OTUs)
+	n.c <- nrow(m) # Number of clusters (n-1)
+
+	# print(m)
+	# print(la)
+	# NOTE that NEGATIVE numbers within m are the original elements
+	clu <- vector("list", n.c)
+	names(clu) <- paste("clu", c(1:n.c), sep=".")
+	for(i in 1:n.c){
+		# for each row of m (cluster)
+		for(j in 1:2){
+			# For first and second column
+			if(m[i,j]<0){
+				# If the element is negative
+				clu[[i]] <- unique(c(clu[[i]], la[-m[i,j]])) # The label
+				m[i,j] <- 0
+			}
+		}
+	}
+
+	# Now clusters have the original values and m contains
+	# only positive (or 0) values
+	for(i in 1:n.c){
+		for(j in 1:2){
+			if(m[i,j]>0){
+				# We need to include the members of the corresponding clusters
+				clu[[i]] <- union(clu[[i]], clu[[m[i,j]]])
+				}
+		}
+	}
+	clu
+	}
+info.sites <-
+function(x=my.dummy, out.as.matrix = TRUE){
+	# info.sites
+	# Takes as input a set of sequences of the same length
+	# and detects the sites that are different between one pair
+	# or more of the sequences.
+
+	# Output a matrix with the results
+	# (if out.as.matrix = TRUE)
+	# ELSE return pseudo molecules and vector of original informative positions
+	 
+	n.s <- length(x) # Number of sequences.
+	
+	# Splits the sequences into their components
+	# (the result is a list, where each component is one of the sequences)
+	x.l <- strsplit(x=x, split="", fixed=TRUE)
+	n.b <- length(x.l[[1]]) # Number of bases of first sequence (will ASSUME all sequences are of the same length!)
+	x.data <- data.frame(matrix('', nrow=n.s, ncol=n.b, dimnames=list(c(1:n.s), paste("b", c(1:n.b), sep=""))), stringsAsFactors=FALSE)
+	# Fils x.data
+	for(i in 1:n.s){
+		x.data[i,] <- x.l[[i]] 
+	}
+	
+	base.index <- c(1:n.b) # Index for the bases
+	informative <- c() # an empty vector (will contain the bases that are informative!)
+	
+	# Obtain the number of the bases that are informative
+	for(i in 1:n.b){
+		if(length(unique(x.data[,i])) > 1) informative <- c(informative, i) 
+	}
+	x.data <- x.data[,informative] # Only informative bases!
+	if(out.as.matrix){
+		# Return the matrix of informative sites
+		return(x.data)
+	} else {
+		# will convert the matrix to sequences
+		x.seq <- c()
+		for(i in 1:n.s){
+			x.seq <- c(x.seq, paste(x.data[i,], collapse=""))
+
+		}
+		res <- list(x.seq, informative)
+		names(res) <- c("pseudo.seq", "base.pos")
+		return(res)
+		
+	}
+	
+}
+info.sites2num <-
+function(x = dummy.info){
+	# info.sites2num
+	# Converts a matrix of informative sites to a matrix
+	# that can be used by the "dist" function.
+	ncx <- ncol(x)
+	nrx <- nrow(x)
+	r.nam <- attributes(x)$row.names
+	c.nam <- names(x)
+	bases <- c("A","T","G","C")
+	res <- matrix(0, nrow=nrx, ncol=4*ncx, dimnames=list(r.nam, paste(rep(c.nam, each=4), rep(bases, ncx), sep="")))
+	l <- 0 # Index for column of res
+	for(i in 1:ncx){
+		# For each column of the original matrix
+		k <- 0 # Index for the base
+		for(j in 1:4){
+			k <- k+1
+			l <- l + 1
+			res[,l] <- 1*(x[,i] == bases[j])
+		}
+	}
+	res
+}
+likeness.boot <-
+function(de=d.t0, da=e.t0, B=100){
+	# likeness.boot
+	# Obtains a vector with likeness between an original dendrogram: de
+	# (de must be a dendrogram produced by "hclust" from matrix "da")
+	# and B bootstrap replicates of such dendrogram.
+	
+	# Recover the method and distance method.
+	me <- de$method
+	dis.me <- de$dist.method
+	res <- rep(NA, B) # An empty vector to contain the results.
+	
+	n.c <- ncol(da)
+
+	# Loop to obtain each value of likeness using function
+	# compare.hclust(x = d.t0, y = d.t10, give.matrix = FALSE, do.cat = FALSE)
+	for(i in 1:B){
+		sam <- sample(c(1:n.c), size=n.c, replace=TRUE)
+		db <- hclust(dist(da[,sam], method=dis.me), method=me)
+		res[i] <- compare.hclust(x = de, y = db, give.matrix = FALSE, do.cat = FALSE)
+	}
+	res
+}
+mutateDNA <-
+function(x=randomDNA(50), how.many=5){
+	# mutateDNA
+	# Input:
+	#	x - A DNA molecule
+	#	how.many - How many "true" mutations (not mute mutations)
+	# Output: The mutated DNA.
+	
+	n <- length(x) # Length of the DNA
+	pos.2.change <- sample(x=c(1:n), size=how.many, replace = FALSE)
+	for(i in 1:how.many){
+		x[pos.2.change[i]] <- sample(x=setdiff(c("A", "T", "G", "C"), x[pos.2.change[i]]), size=1)
+	}
+	x
+}
+myColorDendrogram <-
+function (hc, y, main = "", branchlength = 0.7, labels = NULL, 
+    xlab = NULL, sub = NULL, ylab = "", cex.main = NULL, lwd = par("lwd"), cex=0.2)
+    # NOTE: cex is the size of the labels when present 
+    # NOTE: in ColorDendrogram the line width (lwd) in
+	#	segments(i, hc$he[o] - branchlength, i, hc$he[o], col = y[i])
+	#	is set to default. I will modify it in myColorDendrogram to be able to set it:
+	#	Default is: lwd = par("lwd")
+{
+    if (is.null(labels)) 
+        labels <- rep("", length(y))
+    plot(hc, hang = 0.2, main = main, labels = labels, xlab = xlab, 
+        sub = sub, ylab = ylab, cex.main = cex.main, cex=cex)
+    y <- y[hc$ord]
+    if (is.numeric(y)) {
+        y <- y + 1
+        y[y == 7] <- "orange"
+    }
+    for (i in 1:length(hc$ord)) {
+        o = hc$merge[, 1] == -hc$ord[i] | hc$merge[, 2] == -hc$ord[i]
+        segments(i, hc$he[o] - branchlength, i, hc$he[o], col = y[i], lwd=lwd)
+    }
+}
+permute.seg <-
+function(y=segregate.dis(sim2classes()), cont = "all.within", versus="all.other", B=1000, conf.level = 0.95, alternative = "less", print.results=TRUE, onlyPs = FALSE, perform.permutations = TRUE){
+	# "permute.seg" - Test contrasts by t.test, wilcoxon.test and permutation test.
+	
+	# Octavio Martinez 
+	# (octavio.martinez [at] cinvestav.mx)
+	# August 2018
+	# Computational Biology Lab.
+	# Unidad de Genomica Avanzada
+	# Langebio, Cinvestav, Irapuato.
+
+	# This software is distributed under the terms of the GNU General
+	# Public License "GPL-3" ( http://fsf.org/ ) 'Share and Enjoy.'
+	
+	# SEE: 13_permute_seg
+	# See: 18_MSC2maize for update to the function (minor problems and new parameters)
+	
+	# Input:
+	# y - An objet produced by "segregate.dis"
+	# cont - A character vector with names of contrasts
+	#	(MUST be one or more of the names of y$main!)
+	# versus - Character with "all.other" or a subset of names of y$main
+	
+	# Defaults of cont and versus
+	# cont = "all.within"
+	# versus = "all.other"
+	
+	# alternative can be: c("two.sided", "less", "greater")	
+	
+	if(class(y) != "segregate.dis") stop("y must be an object of class \'segregate.dis\'!")
+	
+	# object is a list with components "main", "classes.table", "sepa"
+	
+	x <- y$main
+	c.t <- y$classes.table # Vector with number of elements per class and names = class!
+	sepa <- y$sepa
+	n.x <- names(x)
+	nc <- length(n.x)
+
+	## Determine if the input is correct:
+	# "cont" must be "all.within" or one or more of the elements of n.x
+	
+	if((length(cont) == 1) && (cont == "all.within")){
+		# Set cont == to all the distances within
+		cont <- c()
+		for(i in 1:nc){
+			tem.s <- strsplit(n.x[i], split = sepa, fixed=TRUE)[[1]]
+			if(tem.s[1] == tem.s[2]) cont <- c(cont, n.x[i])
+		} 
+	}
+
+	if(length(setdiff(cont, n.x))>0){
+		print("Available contrasts for that object are:")
+		print(n.x)
+		stop("\'cont\' have some invalid contrasts!")
+	}
+	if(setequal(cont, n.x)){
+		print("Available contrasts for that object are:")
+		print(n.x)
+		stop("\'cont\' is identical with all contrasts, nothing to compare!")
+	}
+	na.g1 <- cont # Names of the first group to contrast 
+	
+	if(setequal(cont, versus)) stop("\'cont\' is identical with \'versus\'; nothing to compare!")
+	
+	if(length(intersect(cont, versus))>0) stop("\'cont\' intersection with \'versus\' is not empty!")
+	
+	na.g2 <- versus
+
+	if(length(versus) == 1){
+		if(versus == "all.other") {
+			na.g2 <- setdiff(n.x, cont)
+		} 
+	}
+		
+	if(length(setdiff(na.g2, n.x))>0){
+		print("Available contrasts for that object are:")
+		print(n.x)
+		stop("\'versus\' have some invalid contrasts!")
+	}
+
+	lab.g1 <- paste(na.g1, collapse="|")
+	lab.g2 <- paste(na.g2, collapse="|")
+	main.lab <- paste("[", paste(na.g1, collapse=", "), "] versus [", paste(na.g2, collapse=", "), "]", sep="")
+	
+	# Obtain groups
+	g1 <- c()
+	g2 <- c()
+	for(i in 1:nc){
+		for(j in 1:length(na.g1)){
+			if(n.x[i] == na.g1[j]) g1 <- c(g1, as.vector(x[[i]]))
+		}
+		for(j in 1:length(na.g2)){
+			if(n.x[i] == na.g2[j]) g2 <- c(g2, as.vector(x[[i]]))
+		}
+	}
+	
+	# Prform t and Wilcoxon tests:
+	tt <- t.test(g1, g2, alternative = alternative, conf.level = conf.level)
+	wt <- wilcox.test(g1, g2, alternative = alternative, conf.level = conf.level)
+
+	# Summary statistics for both groups:	
+	lg1 <- length(g1)
+	lg2 <- length(g2)
+	all.dis <- c(g1, g2)
+	lall <- length(all.dis)
+	i.all <- c(1:lall)
+
+	sum.g1.g2 <- rbind(c(lg1, summary(g1), sd(g1)), c(lg2, summary(g2), sd(g2)), c(lall, summary(all.dis), sd(all.dis)))
+	dimnames(sum.g1.g2)[[1]] <- c(lab.g1, lab.g2, "All")
+	dimnames(sum.g1.g2)[[2]][c(1,8)] <- c("n", "S")
+	
+	dg1g2 <- sum.g1.g2[1,5]-sum.g1.g2[2,5]
+	
+	if(perform.permutations){
+
+	# Here will perform the permutations and obtain the differences between means of g1 and g2.
+	per <- rep(NA, B)
+	# data.frame(matrix(NA, nrow=B, ncol=2, dimnames=list(c(1:B), c("mean.g1", "mean.g2"))))
+		for(i in 1:B){
+		i.g1 <- sample(x=i.all, size=lg1, replace = FALSE, prob = NULL)
+		i.g2 <- setdiff(i.all, i.g1)
+		per[i] <- mean(all.dis[i.g1]) - mean(all.dis[i.g2])
+	}
+	
+	# Obtain P values of permutations g1 label = lab.g1
+	P.p1 <- length(per[per<=dg1g2])/B
+	P.p2 <- length(per[per>dg1g2])/B
+	# Note: dg1g2 = mean(g1) - mean(g2)
+	n.P.p1 <- paste("P[", lab.g1, " >= ", lab.g2, "]", sep="")
+	n.P.p2 <- paste("P[", lab.g1, " < ", lab.g2, "]", sep="")
+	Pp <- c(P.p1, P.p2)
+	names(Pp) <- c(n.P.p1, n.P.p2)	
+
+	if(onlyPs){ # Gives only values of P
+		res <- c(tt$p.value, wt$p.value, Pp)
+		names(res) <- c("Pt", "Pw", "n.P.p1", "n.P.p2")
+		return(res)
+	}	
+	# Printing
+	if(print.results){
+		print(main.lab)
+		print(sum.g1.g2)
+		print(tt)
+		print(wt)
+		print(Pp)
+	}
+#	print(paste("Summary of statistics for",B,"permutations:"))
+	temp <- summary(per) 
+	sper <- c(B, temp, sd(per))
+	names(sper) <- c("B", names(temp), "S")
+#	print(sper[2:8])
+	call <- match.call()
+
+	res <- list(main.lab, sum.g1.g2, tt, wt, dg1g2, Pp, sper, call)
+	names(res) <- c("contrast", "summary", "t.test", "w.test", "means.diff", "perm", "sum.per", "call")
+	return(invisible(res))
+	
+	# Finish option "perform.permutations=TRUE"
+	} else {
+		# Do not perform permutations
+	if(onlyPs){ # Gives only values of P
+		res <- c(tt$p.value, wt$p.value)
+		names(res) <- c("Pt", "Pw")
+		return(res)
+	}
+		if(print.results){
+		print(main.lab)
+		print(sum.g1.g2)
+		print(tt)
+		print(wt)
+	}
+		
+	call <- match.call()
+	res <- list(main.lab, sum.g1.g2, tt, wt, dg1g2, call)
+	names(res) <- c("contrast", "summary", "t.test", "w.test", "means.diff", "call")
+	return(invisible(res))
+	}
+}
+randomDNA <-
+function(n){
+	# randomDNA
+	# Produces a random DNA molecule with equiprobable bases
+	sample(x=c("A", "T", "G", "C"), size=n, replace = TRUE, prob = NULL)
+}
+segregate.dis <-
+function(x=sim2classes(), classes=rep(c("c1", "c2"), each=10), method="euclidean", sepa="."){
+	# segregate.dis
+	# Segregates a distance matrix into "between" (bet) and "within" (wit) distances.
+	# DEPENDS on function "dist2data"
+	
+	# Octavio Martinez 
+	# (octavio.martinez [at] cinvestav.mx)
+	# August 2018
+	# Computational Biology Lab.
+	# Unidad de Genomica Avanzada
+	# Langebio, Cinvestav, Irapuato.
+
+	# This software is distributed under the terms of the GNU General
+	# Public License "GPL-3" ( http://fsf.org/ ) 'Share and Enjoy.'
+	
+	# Log file: 2_segregate_dis, 3_segregate_summary, 7_RewritingFunctions
+	# (within EvalClusterDiff)
+	
+	# Input:
+	# x - A matrix in which rows are entities (OTUs) and columns are variables.
+	# classes - A character vector with the labels for classes (groups)
+	# that will be considered a priori as sets.
+	
+	# method - A method to be used by the "dist" function.
+	
+	# Let n.cla be the different number of classes, then:
+	
+	# Output:
+	# A list with two components:
+	# wit - A list with n.cla components each one a numeric vector containing
+	#          the distances within each group.
+	# bet - A list with n.cla*(n.cla-1)/2 components, each one containing the
+	#           distance between two classes.
+	
+	# Summary: 
+	
+	if(class(x) != "matrix") x <- as.matrix(x) #stop("x must be a matrix!")	 
+	classes <- as.character(classes)
+	if(length(classes) != nrow(x)) stop("\'classes\' must be of the same length than nrow(x)!")
+	u.cla <- unique(classes)
+	n.cla <- length(u.cla)
+	if(n.cla < 2) stop("\'classes\' must have at least two different labels!")
+	t.cla <- table(classes)
+	if(min(as.vector(t.cla))<2) stop("All labels in \'classes\' must appear at least twice!")
+	
+	# Stop is "sepa" exist in the classes
+	if(length(grep(pattern=sepa, classes, fixed=TRUE))>0) stop(paste("Sorry, classes contain names with the sepa=\'",sepa,"\' Please try with other sepa.", sep=""))
+
+	# classes.table which will be the second object in the res list.	
+	temp <- table(classes)
+	classes.table <- as.vector(temp)
+	attributes(classes.table)$names <- attributes(temp)$dimnames[[1]]
+
+	# Modify x to have row names as classes
+	attributes(x)$dimnames[[1]] <- classes
+	
+	# Obtains the distance matrix
+	x.dis <- dist(x, method=method)
+	
+	# Transform the matrix to a data.frame
+	x.dat <- dist2data(x.dis)
+
+	# Obtain the labels for the possible contrasts
+	x.lab <- paste(x.dat$row, x.dat$col, sep=sepa)
+	x.u.lab <- unique(x.lab)
+	n.con <- length(x.u.lab)
+	
+	# Define the list that will contain vectors of distances
+	res <- vector(mode = "list", length = n.con) 
+
+	# Segregate the distances
+	for(i in 1:n.con){
+		# Obtain values of row and column of x.dat
+		test.val <- strsplit(x.u.lab[i], split=sepa, fixed = TRUE)[[1]]
+		res[[i]] <- c(x.dat$value[(x.dat$row==test.val[1])&(x.dat$col==test.val[2])])
+	}
+	names(res) <- x.u.lab
+	res <- list(res, classes.table, sepa)
+	names(res) <- c("main", "classes.table", "sepa")
+	class(res) <- "segregate.dis"
+	res
+
+	
+}
+segregate.plot <-
+function(y=segregate.dis()){
+	# segregate.plot - boxplot of a segregate object
+	# SEE: 15_irisExample
+		
+	# Octavio Martinez 
+	# (octavio.martinez [at] cinvestav.mx)
+	# August 2018
+	# Computational Biology Lab.
+	# Unidad de Genomica Avanzada
+	# Langebio, Cinvestav, Irapuato.
+
+	# This software is distributed under the terms of the GNU General
+	# Public License "GPL-3" ( http://fsf.org/ ) 'Share and Enjoy.'
+	
+	# SEE: 7_RewritingFunctions
+	
+	# Input:
+	# y - An objet produced by "segregate.dis"
+		
+	if(class(y) != "segregate.dis") stop("y must be an object of class \'segregate.dis\'!")
+	
+	# object is a list with components "main", "classes.table", "sepa"
+	
+	x <- y$main
+	n.x <- names(x)
+	nc <- length(n.x)
+	
+	## Makes a new dataset with all distances and a factor which classes equal to contrasts
+	
+	# Obtain the vector of contrasts as factor
+	Contrast <- c()
+	Distance <- c()
+	for(i in 1:nc){
+		Contrast <- c(Contrast, rep(n.x[i], length(as.vector(x[[i]]))))
+		Distance <- c(Distance, as.vector(x[[i]]))
+	}
+	Contrast <- as.factor(Contrast)
+	dat <- data.frame(Contrast, Distance)
+	boxplot(Distance ~ Contrast, data=dat, xlab="Contrast", ylab="Distance")
+#	dat.aov <- aov(Distance ~ Contrast, data=dat)
+#	dat.kru <- kruskal.test(Distance ~ Contrast, data=dat)
+#	print(summary(dat.aov))
+#	print(dat.kru)
+#	res <- list(dat, dat.aov, dat.kru)
+#	names(res) <- c("Data", "AOV", "Kruskal")
+	
+	invisible(dat)
+}
+segregate.summary <-
+function(y=segregate.dis()){
+	# segregate.summary - A summary of objects of class "segregate.dis"
+	## Version corrected in 15_irisExample
+	
+	# Octavio Martinez 
+	# (octavio.martinez [at] cinvestav.mx)
+	# August 2018
+	# Computational Biology Lab.
+	# Unidad de Genomica Avanzada
+	# Langebio, Cinvestav, Irapuato.
+
+	# This software is distributed under the terms of the GNU General
+	# Public License "GPL-3" ( http://fsf.org/ ) 'Share and Enjoy.'
+	
+	# Log file: 15_irisExample
+	
+	# Input:
+	# x - An objet produced by "segregate.dis"
+		
+	if(class(y) != "segregate.dis") stop("y must be an object of class \'segregate.dis\'!")
+	
+	# object is a list with components "main", "classes.table", "sepa"
+	
+	x <- y$main
+	n.x <- names(x)
+	nc <- length(n.x)
+	
+	res <- matrix(NA, nrow=nc+1, ncol=8, dimnames=list(c(n.x, "All"), c("n", "Min.", "Qu.1",  "Median", "Mean",  "Qu.3",  "Max.", "S"))) 
+	for(i in 1:nc){
+		res[i,] <- c(length(x[[i]]), summary(x[[i]]), sd(x[[i]]))
+	}	
+
+	all <- unlist(x)
+	res[nc+1,] <- c(length(all), summary(all), sd(all))
+	
+	res
+}
+segregate.test <-
+function(y=segregate.dis(), cont = "a.a", versus = "all.other"){
+	# segregate.test - Test a cluster or contrast versus others clusters.
+	# By default will perform t.test AND wilcox.test
+	
+	# Octavio Martinez 
+	# (octavio.martinez [at] cinvestav.mx)
+	# August 2018
+	# Computational Biology Lab.
+	# Unidad de Genomica Avanzada
+	# Langebio, Cinvestav, Irapuato.
+
+	# This software is distributed under the terms of the GNU General
+	# Public License "GPL-3" ( http://fsf.org/ ) 'Share and Enjoy.'
+	
+	# SEE: 7_RewritingFunctions
+	
+	# Input:
+	# y - An objet produced by "segregate.dis"
+	# cont - A character vector with names of contrasts
+	#	(MUST be one or more of the names of y$main!)
+	# versus - Charcter with "all.other" or a subset of names of y$main
+		
+	if(class(y) != "segregate.dis") stop("y must be an object of class \'segregate.dis\'!")
+	
+	# object is a list with components "main", "classes.table", "sepa"
+	
+	x <- y$main
+	c.t <- y$classes.table # Vector with number of elements per class and names = class!
+	sepa <- y$sepa
+
+	n.x <- names(x)
+	nc <- length(n.x)
+
+	## Determine if the input is correct:
+	# "cont" must be one or more of the elements of n.x
+	if(length(setdiff(cont, n.x))>0){
+		print("Available contrasts for that object are:")
+		print(n.x)
+		stop("\'cont\' have some invalid contrasts!")
+	}
+	if(setequal(cont, n.x)){
+		print("Available contrasts for that object are:")
+		print(n.x)
+		stop("\'cont\' is identical with all contrasts, nothing to compare!")
+	}
+	na.g1 <- cont # Names of the first group to contrast 
+	
+	if(setequal(cont, versus)) stop("\'cont\' is identical with \'versus\'; nothing to compare!")
+	
+	if(length(intersect(cont, versus))>0) stop("\'cont\' intersection with \'versus\' is not empty!")
+	
+	na.g2 <- versus
+
+	if(length(versus) == 1){
+		if(versus == "all.other") {
+			na.g2 <- setdiff(n.x, cont)
+		} 
+	}
+		
+	if(length(setdiff(na.g2, n.x))>0){
+		print("Available contrasts for that object are:")
+		print(n.x)
+		stop("\'versus\' have some invalid contrasts!")
+	}
+
+	main.lab <- paste("[", paste(na.g1, collapse=", "), "] versus [", paste(na.g2, collapse=", "), "]", sep="")
+	
+	# Obtain groups
+	g1 <- c()
+	g2 <- c()
+	for(i in 1:nc){
+		for(j in 1:length(na.g1)){
+			if(n.x[i] == na.g1[j]) g1 <- c(g1, as.vector(x[[i]]))
+		}
+		for(j in 1:length(na.g2)){
+			if(n.x[i] == na.g2[j]) g2 <- c(g2, as.vector(x[[i]]))
+		}
+	}
+	
+	tt <- t.test(g1, g2)
+	wt <- wilcox.test(g1, g2)
+	
+	# Printing
+	print(main.lab)
+	print(tt)
+	print(wt)
+	
+	invisible(list(main.lab, tt, wt))
+}
+segregated2matrix <-
+function(y=segregate.dis(), stat="mean"){
+	# segregated2matrix- Converts a "segregate.dis" object into
+	# a (symmetric) matrix between clusters using the statistic "stat"
+	# which will be "mean" or "median" 
+	
+	# Octavio Martinez 
+	# (octavio.martinez [at] cinvestav.mx)
+	# August 2018
+	# Computational Biology Lab.
+	# Unidad de Genomica Avanzada
+	# Langebio, Cinvestav, Irapuato.
+
+	# This software is distributed under the terms of the GNU General
+	# Public License "GPL-3" ( http://fsf.org/ ) 'Share and Enjoy.'
+	
+	# Log file2: 8_Examples2IR1
+	
+	# Input:
+	# y - An objet produced by "segregate.dis"
+		
+	if(class(y) != "segregate.dis") stop("y must be an object of class \'segregate.dis\'!")
+	if((stat != "mean")&(stat != "median")) stop(paste("Method stat =", stat, "is not implemented."))
+	
+	# object is a list with components "main", "classes.table", "sepa"
+	
+	x <- y$main
+	c.t <- y$classes.table # Vector with number of elements per class and names = class!
+	sepa <- y$sepa
+
+	na.x <- names(x) # NAmes of the contrasts (elements of list x)
+	nu.co <- length(na.x)  # Number of contrasts
+	class.names <- names(c.t) # Names of the classes
+	nu.cl <- length(class.names)
+	
+	res <- matrix(NA, nrow=nu.cl, ncol=nu.cl, dimnames=list(class.names, class.names))
+	
+	## Convert the list x into a vector with the statistic of interest
+	if(stat == "mean"){
+		vec.sta <- unlist(lapply(x, mean))
+	} else {
+		vec.sta <- unlist(lapply(x, median))
+	}
+	names(vec.sta) <- na.x
+	
+	
+	for(i in 1:nu.cl){
+		for(j in 1:nu.cl){
+		full.name1 <- paste(class.names[i], class.names[j], sep=sepa)
+		full.name2 <- paste(class.names[j], class.names[i], sep=sepa)
+		temp1 <- vec.sta[names(vec.sta) == full.name1]	
+		temp2 <- vec.sta[names(vec.sta) == full.name2]
+		if(length(temp1)==1) res[i,j] <- temp1
+		if(length(temp2)==1) res[i,j] <- temp2			
+		}
+	}
+
+res
+}
+sim2classes <-
+function(c1=10, c2=10, v=10, mc1=0, sc1=1, mc2=0, sc2=1){
+	# Simmulate two classes
+	m1 <- matrix(rnorm(n=c1*v, mean=mc1, sd=sc1), nrow=c1, ncol=v, dimnames=list(rep("c1", c1), paste("v", c(1:v), sep="")))
+	m2 <- matrix(rnorm(n=c2*v, mean=mc2, sd=sc2), nrow=c2, ncol=v, dimnames=list(rep("c2", c2), paste("v", c(1:v), sep="")))
+	rbind(m1,m2)
+}
+SNP.dist <-
+function(x=info.sites()){
+	# SNP.dist
+	# Obtain a distance matrix from a matrix of informative sites
+	# as the one given by the function "info.sites"
+	n.s <- nrow(x) # Number of sequences.
+	n.b <- ncol(x) # Number of bases in the sequences
+	
+	res <- matrix(0, nrow=n.s, ncol=n.s, dimnames=list(c(1:n.s), c(1:n.s)))
+	# Makes all pair comparisons
+	# filling res elements
+	for(i in 1:(n.s-1)){
+		for(j in (i+1):n.s){
+			# Give the number of differences
+			res[i,j] <- sum(x[i,] != x[j,])
+		}
+	}
+	as.dist(t(res/n.b))
+}
+two.states.den <-
+function(s1="DG", s2="NL", cex=0.5, main=""){
+	tem.in <- incidence[(substring(attributes(incidence)$dimnames[[1]],1,2) == s1)|(substring(attributes(incidence)$dimnames[[1]],1,2) == s2),]
+	plot(hclust(dist(tem.in, method="euclidean"), method="average"), cex=cex, main=main)
+}
+write.latex <-
+function (x, file, row.names = TRUE, col.names = TRUE) 
+{
+    write.table(x, file = file, quote = FALSE, sep = " & ", eol = "\\\\\n", 
+        na = "NA", dec = ".", row.names = row.names, col.names = col.names)
+}

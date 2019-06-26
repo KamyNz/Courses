@@ -1,0 +1,30 @@
+adhoc <-
+function(x=incidence, g1="TE", g2="PA", dist.method="euclidean", clu.method="average", leg.place="topright", branchlength=1.6){
+	# adhoc
+	# Makes a dendrogram for two groups of the maize accession
+	# and test if those groups are significantly segregated
+	# See Box 20
+	inc <- incidence[(substring(attributes(x)$dimnames[[1]],1,2)==g1)|(substring(attributes(x)$dimnames[[1]],1,2)==g2),]
+	
+	# Output will be ONLY to screen
+	cat("Analysis of groups ", g1, " and ", g2, "\nTotal of accessions = ", nrow(inc), "\n", sep='')
+	group <- substring(attributes(inc)$dimnames[[1]],1,2)
+	cat("\nNumber of accessions per:\n")
+	print(table(group))
+	
+	dis <- dist(inc, method=dist.method)
+	col <- group
+	col[col==g1] <- "red"
+	col[col==g2] <- "blue"
+	main.tit <- paste("Dendrogram of accessions from", g1, "and", g2)
+	myColorDendrogram(hclust(dis, method=clu.method), y=col, branchlength=branchlength)
+	title(main=main.tit)
+	legend(leg.place, bty="n", legend=c(g1, g2), lty=1, col=c("red", "blue"))
+	
+	seg <- segregate.dis(inc, classes=group)
+	cat("\nSummary of distances:\n")
+	print(segregate.summary(seg))
+	
+	contrast <- paste(g1, g2, sep=".")
+	segregate.test(seg, cont=contrast)
+}
