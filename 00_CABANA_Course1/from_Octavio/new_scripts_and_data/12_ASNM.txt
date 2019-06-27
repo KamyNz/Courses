@@ -1,0 +1,560 @@
+12_ASNM
+Thu Jun 27 08:53:30 2019
+
+Is there genetic diversity associated with the "height above sea level"
+https://en.wikipedia.org/wiki/Metres_above_sea_level
+The data are in an R file:
+
+> setwd("Documents/Cursos/2019/6_JuneCABANA/CABANA/CabanaR/")
+# I am going to put the object in this directory; you can move it there; I will be sending it by e-mail)
+
+> dir(patt=".RData") # To check that I have the file that I want
+[1] "ChiliStuff.RData"   "DummyExample.RData" "inci.asnm.RData"   
+[4] "incidence.RData"   
+
+# I load the data
+> load("inci.asnm.RData")
+> ls(patt="inci") # Must include...
+[1] "inci.asnm"
+> class(inci.asnm)
+[1] "data.frame"
+> dim(inci.asnm)
+[1] 1264  335
+
+> head(names(inci.asnm))
+[1] "acc"   "asnm"  "M1.A1" "M1.A2" "M1.A3" "M1.A4"
+
+The variable "inci.asnm$asnm" is in fact the "height above sea level" of each one of the accessions (which names are in inci.asnm$acc)
+Note that there are only 1264 rows in the data frame
+because in many cases "inci.asnm$asnm" were missing (not available)
+Let's see a summary of the variable of interest.
+
+> summary(inci.asnm$asnm)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+      0    1058    1682    1546    2140    3025 
+> sd(inci.asnm$asnm) # The Standard Deviation (S)
+[1] 760.4105
+> hist(inci.asnm$asnm) # and an histogram
+
+We must remember that for the number of bulks we have MANY zeroes and FEW values 1, 2, 3.
+For example
+> table(inci.asnm$M1.A1)
+
+   0    1    2    3 
+1206   37   13    8 
+
+Is there a "relation" between asnm and some of the marker alleles? We could consider the marker / allele combination as a "factor" or could consider it as a "quantitative variable". The parametrization of the models will be different of course, but to some extent at least part of the results will be "concordant".
+
+A first example:
+
+> summary(aov(asnm ~ as.factor(M1.A1), data=inci.asnm))
+                   Df    Sum Sq  Mean Sq F value   Pr(>F)    
+as.factor(M1.A1)    3  31152996 10384332   18.71 7.03e-12 ***
+Residuals        1260 699144091   554876                     
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+> summary(lm(asnm ~ M1.A1, data=inci.asnm))
+
+Call:
+lm(formula = asnm ~ M1.A1, data = inci.asnm)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-1577.0  -489.9   127.5   573.0  1561.9 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  1576.95      21.34  73.883  < 2e-16 ***
+M1.A1        -444.42      59.81  -7.431 1.98e-13 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 744.6 on 1262 degrees of freedom
+Multiple R-squared:  0.04192,	Adjusted R-squared:  0.04116 
+F-statistic: 55.22 on 1 and 1262 DF,  p-value: 1.977e-13
+
+Let's examine this model more carefully 
+
+m.M1.A1 <- lm(asnm ~ M1.A1, data=inci.asnm)
+names(m.M1.A1)
+ [1] "coefficients"  "residuals"     "effects"       "rank"         
+ [5] "fitted.values" "assign"        "qr"            "df.residual"  
+ [9] "xlevels"       "call"          "terms"         "model"        
+m.M1.A1$coefficients
+(Intercept)       M1.A1 
+  1576.9547   -444.4227 
+
+new <- data.frame(M1.A1=seq(0,3,by=0.01))
+conf.int.m1 <- predict(object=m.M1.A1, newdata=new, interval="confidence", level = 0.95)
+
+plot(inci.asnm$M1.A1, inci.asnm$asnm, xlab="M1.A1", ylab="asnm")
+abline(coef=m.M1.A1$coefficients, col="red", lw=2)
+matlines(new, conf.int.m1[,2:3], col = "blue", lw=2, lty=2)
+legend("topright", bty="n", legend=c("asnm = 1577 - 444 M1.A1", "95% CI"), col=c("red", "blue"), lw=2, lty=c(1,2))
+
+Now, we want to make a lineal model for each one of the marker / allele combination
+
+my.models <- vector("list", 333)
+names(my.models) <- m
+
+Now, let's fit all the models and put the results in that list
+for(i in 1:333){
+my.models[[i]] <- lm(inci.asnm$asnm ~ inci.asnm[,i+2])
+}
+
+> summary(my.models[[1]])
+
+Call:
+lm(formula = inci.asnm$asnm ~ inci.asnm[, i + 2])
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-1577.0  -489.9   127.5   573.0  1561.9 
+
+Coefficients:
+                   Estimate Std. Error t value Pr(>|t|)    
+(Intercept)         1576.95      21.34  73.883  < 2e-16 ***
+inci.asnm[, i + 2]  -444.42      59.81  -7.431 1.98e-13 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 744.6 on 1262 degrees of freedom
+Multiple R-squared:  0.04192,	Adjusted R-squared:  0.04116 
+F-statistic: 55.22 on 1 and 1262 DF,  p-value: 1.977e-13
+
+# Now we need to summarize the results of these 333 models
+> names(my.models[[1]])
+ [1] "coefficients"  "residuals"     "effects"       "rank"         
+ [5] "fitted.values" "assign"        "qr"            "df.residual"  
+ [9] "xlevels"       "call"          "terms"         "model"        
+> my.models[[1]]$coefficients
+       (Intercept) inci.asnm[, i + 2] 
+         1576.9547          -444.4227 
+> names(summary(my.models[[1]]))
+ [1] "call"          "terms"         "residuals"     "coefficients" 
+ [5] "aliased"       "sigma"         "df"            "r.squared"    
+ [9] "adj.r.squared" "fstatistic"    "cov.unscaled" 
+
+> summary(my.models[[1]])$adj.r.squared
+[1] 0.04116437
+> summary(my.models[[1]])$fstatistic
+     value      numdf      dendf 
+  55.22263    1.00000 1262.00000
+temp <- summary(my.models[[1]])$fstatistic
+> pf(temp[1], temp[2], temp[3], lower.tail=F)
+       value 
+1.977321e-13 
+
+Let's create a data frame to keep the results
+
+First segregate the names of markers and alleles
+
+temp <- strsplit(names(inci.asnm[3:335]), ".", fixed=T)
+temp.m <- rep("",333)
+temp.a <- rep("",333)
+for(i in 1:333){
+temp.m[i] <- temp[[i]][1]
+temp.a[i] <- temp[[i]][2]
+}
+
+
+sum.my.models <- data.frame(ma.al=names(inci.asnm[3:335]), ma=temp.m, al=temp.a, intercept=rep(NA,333), slope=rep(NA,333), adj.r.squared=rep(NA,333), F.V=rep(NA,333), P.F=rep(NA,333), stringsAsFactors=F)
+
+for(i in 1:333){
+if(!is.na(my.models[[i]]$coefficients[2])){
+sum.my.models[i, 4:5] <- my.models[[i]]$coefficients
+temp <- summary(my.models[[i]])
+sum.my.models$adj.r.squared[i] <- temp$adj.r.squared
+sum.my.models$F.V[i] <- temp$fstatistic[1]
+sum.my.models$P.F[i] <- pf(temp$fstatistic[1], temp$fstatistic[2], temp$fstatistic[3], lower.tail=F)
+}
+}
+
+Let's eliminate the NA cases; see
+sum.my.models[is.na(sum.my.models$slope),]
+    ma.al ma  al intercept slope adj.r.squared F.V P.F
+20 M1.A20 M1 A20        NA    NA            NA  NA  NA
+
+sum.my.models <- sum.my.models[!is.na(sum.my.models$slope),]
+nrow(sum.my.models)
+
+Let's make a correction for multi-testing; we are going to obtain Q values from the P.F values
+
+sum.my.models <- data.frame(sum.my.models, Q=p.adjust(sum.my.models$P.F, method="fdr"), stringsAsFactors=F)
+
+# How many "significant" marker / alleles do we have at different FDR values?
+> nrow(sum.my.models[sum.my.models$Q<=0.05,])
+[1] 151
+> nrow(sum.my.models[sum.my.models$Q<=0.01,])
+[1] 121
+> nrow(sum.my.models[sum.my.models$Q<=0.001,])
+[1] 102
+> nrow(sum.my.models[sum.my.models$Q<=0.0001,])
+[1] 83
+
+> table(sum.my.models$ma)
+
+ M1 M10 M11 M12 M13 M14  M2  M3  M4  M5  M6  M7  M8  M9 
+ 23  22  20  21  24  20  24  23  26  11  30  41  27  20 
+> table(sum.my.models$ma[sum.my.models$Q<=0.01])
+
+ M1 M10 M11 M12 M13 M14  M2  M3  M4  M5  M6  M7  M8  M9 
+ 13  12   4   9   8   8  11   5   9   4  11  10  12   5 
+> round(100*table(sum.my.models$ma[sum.my.models$Q<=0.01])/table(sum.my.models$ma))
+
+ M1 M10 M11 M12 M13 M14  M2  M3  M4  M5  M6  M7  M8  M9 
+ 57  55  20  43  33  40  46  22  35  36  37  24  44  25 
+
+# How much of the variance of the asnm can be explained by each one of the models?
+> summary(sum.my.models$adj.r.squared)
+      Min.    1st Qu.     Median       Mean    3rd Qu.       Max. 
+-7.923e-04 -4.359e-05  2.316e-03  1.275e-02  1.322e-02  3.014e-01 
+> summary(100*sum.my.models$adj.r.squared)
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+-0.079229 -0.004359  0.231596  1.275378  1.321994 30.141953 
+
+And if we take only the "significant"?
+> summary(100*sum.my.models$adj.r.squared[sum.my.models$Q<=0.01])
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.6168  1.1701  2.1523  3.3300  3.6942 30.1420 
+
+Which one is the combination of marker allele that explains a LARGER proportion of the variance of asnm?
+> sum.my.models[sum.my.models$adj.r.squared>0.3,]
+     ma.al  ma al intercept    slope adj.r.squared      F.V           P.F
+235 M10.A9 M10 A9  1205.862 332.8668     0.3014195 545.9521 1.241834e-100
+               Q
+235 4.122888e-98
+
+> which(names(my.models) == "M10.A9")
+[1] 235
+
+> summary(my.models[[235]])
+
+Call:
+lm(formula = inci.asnm$asnm ~ inci.asnm[, i + 2])
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-2014.5  -397.9    74.7   417.6  1794.1 
+
+Coefficients:
+                   Estimate Std. Error t value Pr(>|t|)    
+(Intercept)         1205.86      23.06   52.28   <2e-16 ***
+inci.asnm[, i + 2]   332.87      14.25   23.37   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 635.6 on 1262 degrees of freedom
+Multiple R-squared:  0.302,	Adjusted R-squared:  0.3014 
+F-statistic:   546 on 1 and 1262 DF,  p-value: < 2.2e-16
+
+# Let's make again that "best model"
+
+bm.M10.A9 <- lm(asnm ~ M10.A9, data=inci.asnm)
+# Check with summary(bm.M10.A9)
+
+new <- data.frame(M10.A9=seq(0,3,by=0.01))
+conf.int.bm <- predict(object=bm.M10.A9, newdata=new, interval="confidence", level = 0.95)
+
+plot(inci.asnm$M10.A9, inci.asnm$asnm, xlab="M10.A9", ylab="asnm")
+abline(coef=bm.M10.A9$coefficients, col="red", lw=2)
+matlines(new, conf.int.bm[,2:3], col = "blue", lw=2, lty=2)
+title(main="asnm = 1205 + 333 M10.A9 (in red)", sub="Explains more than 30% of the variance")
+
+# Let's obtain a multiple regression model with the "step wise" method
+inci.asnm.2 <- inci.asnm[,2:335]
+> head(names(inci.asnm.2))
+[1] "asnm"  "M1.A1" "M1.A2" "M1.A3" "M1.A4" "M1.A5"
+
+full.mod <- lm(asnm ~ ., data = inci.asnm.2)
+
+> summary(full.mod)
+
+Call:
+lm(formula = asnm ~ ., data = inci.asnm.2)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-2292.1  -224.0     0.0   246.3  1833.9 
+
+Coefficients: (1 not defined because of singularities)
+              Estimate Std. Error t value Pr(>|t|)    
+(Intercept) 1382.50311  196.35821   7.041 3.71e-12 ***
+M1.A1       -126.26730   53.93511  -2.341 0.019437 *  
+M1.A2       -126.21812  101.41593  -1.245 0.213607    
+M1.A3        -17.26074   30.97964  -0.557 0.577549    
+M1.A4         18.23731   25.89967   0.704 0.481514    
+# ... many more rows
+M14.A18       22.61577   28.95502   0.781 0.434963    
+M14.A19      -78.49122   68.97806  -1.138 0.255448    
+M14.A20     -186.37441  132.63149  -1.405 0.160294    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 432.5 on 931 degrees of freedom
+Multiple R-squared:  0.7615,	Adjusted R-squared:  0.6765 
+F-statistic: 8.954 on 332 and 931 DF,  p-value: < 2.2e-16
+
+# step.mod <- step(full.mod) # WARNING can take forever !!!
+
+# We could begin with a more "economical" model (only highly significant models)
+> length(sum.my.models$ma.al[(sum.my.models$Q<=0.01)&(sum.my.models$adj.r.squared>=0.1)])
+[1] 5
+> length(sum.my.models$ma.al[(sum.my.models$Q<=0.01)&(sum.my.models$adj.r.squared>=0.05)])
+[1] 20
+
+sel.markers <- sum.my.models$ma.al[(sum.my.models$Q<=0.01)&(sum.my.models$adj.r.squared>=0.05)]
+
+> sel.markers
+ [1] "M2.A3"   "M2.A6"   "M2.A7"   "M6.A8"   "M6.A23"  "M7.A3"   "M8.A7"  
+ [8] "M8.A9"   "M8.A23"  "M9.A15"  "M10.A9"  "M10.A10" "M10.A17" "M11.A8" 
+[15] "M11.A9"  "M12.A9"  "M12.A10" "M14.A16" "M14.A17" "M14.A18"
+
+> which(names(inci.asnm)==sel.markers[1])
+[1] 29
+> inci.asnm[1:5, c(1,29)]
+        acc M2.A3
+CH001 CH001     0
+CH002 CH002     0
+CH003 CH003     2
+CH004 CH004     0
+CH005 CH005     1
+
+sel.col <- rep(NA,20)
+for(i in 1:20){
+sel.col[i] <- which(names(inci.asnm)==sel.markers[i])
+}
+
+inci.3 <- inci.asnm[, c(2,sel.col)]
+
+> names(inci.3)[2:21]==sel.markers
+ [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+[15] TRUE TRUE TRUE TRUE TRUE TRUE
+
+# Let's fit a new "full" model
+
+full.mod2 <- lm(asnm ~ ., data = inci.3)
+
+> summary(full.mod2)
+
+Call:
+lm(formula = asnm ~ ., data = inci.3)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-2209.15  -318.41    32.84   349.62  2286.39 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept) 1087.787     74.315  14.638  < 2e-16 ***
+M2.A3        -66.092     24.340  -2.715 0.006712 ** 
+M2.A6          4.405     12.973   0.340 0.734237    
+M2.A7        -89.067     17.658  -5.044 5.23e-07 ***
+M6.A8       -183.208     35.465  -5.166 2.78e-07 ***
+M6.A23        47.982     14.155   3.390 0.000721 ***
+M7.A3        -58.535     14.499  -4.037 5.74e-05 ***
+M8.A7         64.521     18.978   3.400 0.000696 ***
+M8.A9         63.371     16.803   3.771 0.000170 ***
+M8.A23      -172.645     32.116  -5.376 9.10e-08 ***
+M9.A15        72.002     14.568   4.942 8.77e-07 ***
+M10.A9       151.777     15.556   9.757  < 2e-16 ***
+M10.A10       15.961     24.388   0.654 0.512940    
+M10.A17      -32.059     13.656  -2.348 0.019054 *  
+M11.A8       -78.577     16.544  -4.750 2.28e-06 ***
+M11.A9        30.559     16.581   1.843 0.065558 .  
+M12.A9        -4.958     13.020  -0.381 0.703418    
+M12.A10       34.445     13.493   2.553 0.010804 *  
+M14.A16      116.785     16.827   6.940 6.28e-12 ***
+M14.A17      111.264     13.799   8.063 1.73e-15 ***
+M14.A18       70.654     26.357   2.681 0.007445 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 500.7 on 1243 degrees of freedom
+Multiple R-squared:  0.5733,	Adjusted R-squared:  0.5664 
+F-statistic: 83.49 on 20 and 1243 DF,  p-value: < 2.2e-16
+
+system.time(
+step.mod2 <- step(full.mod2)
+)
+
+Start:  AIC=15734.96
+asnm ~ M2.A3 + M2.A6 + M2.A7 + M6.A8 + M6.A23 + M7.A3 + M8.A7 + 
+    M8.A9 + M8.A23 + M9.A15 + M10.A9 + M10.A10 + M10.A17 + M11.A8 + 
+    M11.A9 + M12.A9 + M12.A10 + M14.A16 + M14.A17 + M14.A18
+
+          Df Sum of Sq       RSS   AIC
+- M2.A6    1     28910 311666400 15733
+- M12.A9   1     36355 311673846 15733
+- M10.A10  1    107384 311744874 15733
+<none>                 311637491 15735
+- M11.A9   1    851642 312489133 15736
+- M10.A17  1   1381673 313019164 15738
+- M12.A10  1   1633870 313271361 15740
+- M14.A18  1   1801583 313439074 15740
+- M2.A3    1   1848561 313486052 15740
+- M6.A23   1   2880871 314518362 15745
+- M8.A7    1   2897943 314535434 15745
+- M8.A9    1   3565992 315203483 15747
+- M7.A3    1   4086450 315723941 15749
+- M11.A8   1   5655573 317293063 15756
+- M9.A15   1   6124384 317761874 15758
+- M2.A7    1   6379007 318016498 15759
+- M6.A8    1   6690650 318328140 15760
+- M8.A23   1   7245239 318882729 15762
+- M14.A16  1  12077014 323714505 15781
+- M14.A17  1  16300245 327937736 15797
+- M10.A9   1  23866438 335503929 15826
+
+Step:  AIC=15733.07
+asnm ~ M2.A3 + M2.A7 + M6.A8 + M6.A23 + M7.A3 + M8.A7 + M8.A9 + 
+    M8.A23 + M9.A15 + M10.A9 + M10.A10 + M10.A17 + M11.A8 + M11.A9 + 
+    M12.A9 + M12.A10 + M14.A16 + M14.A17 + M14.A18
+
+          Df Sum of Sq       RSS   AIC
+- M12.A9   1     45054 311711454 15731
+- M10.A10  1    116253 311782653 15732
+<none>                 311666400 15733
+- M11.A9   1    925232 312591632 15735
+- M10.A17  1   1396012 313062412 15737
+- M12.A10  1   1605146 313271546 15738
+- M14.A18  1   1863302 313529702 15739
+- M2.A3    1   1907581 313573982 15739
+- M8.A7    1   2871993 314538393 15743
+- M6.A23   1   3012165 314678566 15743
+- M8.A9    1   3655931 315322331 15746
+- M7.A3    1   4100206 315766606 15748
+- M11.A8   1   5699483 317365883 15754
+- M9.A15   1   6130657 317797057 15756
+- M2.A7    1   6522548 318188949 15757
+- M6.A8    1   6717491 318383891 15758
+- M8.A23   1   7235424 318901824 15760
+- M14.A16  1  12364613 324031013 15780
+- M14.A17  1  16372120 328038520 15796
+- M10.A9   1  23837956 335504356 15824
+
+Step:  AIC=15731.26
+asnm ~ M2.A3 + M2.A7 + M6.A8 + M6.A23 + M7.A3 + M8.A7 + M8.A9 + 
+    M8.A23 + M9.A15 + M10.A9 + M10.A10 + M10.A17 + M11.A8 + M11.A9 + 
+    M12.A10 + M14.A16 + M14.A17 + M14.A18
+
+          Df Sum of Sq       RSS   AIC
+- M10.A10  1    121496 311832950 15730
+<none>                 311711454 15731
+- M11.A9   1    955259 312666713 15733
+- M10.A17  1   1374944 313086398 15735
+- M12.A10  1   1680396 313391850 15736
+- M14.A18  1   1879807 313591261 15737
+- M2.A3    1   1965529 313676983 15737
+- M8.A7    1   2842450 314553904 15741
+- M6.A23   1   3119876 314831330 15742
+- M8.A9    1   3637419 315348873 15744
+- M7.A3    1   4173974 315885428 15746
+- M11.A8   1   5726261 317437715 15752
+- M9.A15   1   6096219 317807674 15754
+- M2.A7    1   6576489 318287943 15756
+- M6.A8    1   6823278 318534732 15757
+- M8.A23   1   7367389 319078843 15759
+- M14.A16  1  12750535 324461989 15780
+- M14.A17  1  16662986 328374440 15795
+- M10.A9   1  23880444 335591898 15823
+
+Step:  AIC=15729.75
+asnm ~ M2.A3 + M2.A7 + M6.A8 + M6.A23 + M7.A3 + M8.A7 + M8.A9 + 
+    M8.A23 + M9.A15 + M10.A9 + M10.A17 + M11.A8 + M11.A9 + M12.A10 + 
+    M14.A16 + M14.A17 + M14.A18
+
+          Df Sum of Sq       RSS   AIC
+<none>                 311832950 15730
+- M11.A9   1    974424 312807374 15732
+- M10.A17  1   1352800 313185750 15733
+- M12.A10  1   1650136 313483086 15734
+- M14.A18  1   1881228 313714178 15735
+- M2.A3    1   1989759 313822709 15736
+- M8.A7    1   2870349 314703299 15739
+- M6.A23   1   3073257 314906207 15740
+- M8.A9    1   3703352 315536302 15743
+- M7.A3    1   4232168 316065118 15745
+- M11.A8   1   5767686 317600636 15751
+- M9.A15   1   6025138 317858088 15752
+- M2.A7    1   6562746 318395696 15754
+- M6.A8    1   6830456 318663406 15755
+- M8.A23   1   7358992 319191942 15757
+- M14.A16  1  12738746 324571696 15778
+- M14.A17  1  16917818 328750768 15794
+- M10.A9   1  30669501 342502451 15846
+   user  system elapsed 
+  0.260   0.014   0.273 
+
+> step.mod2
+
+Call:
+lm(formula = asnm ~ M2.A3 + M2.A7 + M6.A8 + M6.A23 + M7.A3 + 
+    M8.A7 + M8.A9 + M8.A23 + M9.A15 + M10.A9 + M10.A17 + M11.A8 + 
+    M11.A9 + M12.A10 + M14.A16 + M14.A17 + M14.A18, data = inci.3)
+
+Coefficients:
+(Intercept)        M2.A3        M2.A7        M6.A8       M6.A23  
+    1085.07       -68.05       -89.85      -184.63        48.82  
+      M7.A3        M8.A7        M8.A9       M8.A23       M9.A15  
+     -59.39        63.96        64.22      -173.46        71.25  
+     M10.A9      M10.A17       M11.A8       M11.A9      M12.A10  
+     156.25       -31.65       -79.24        32.20        34.05  
+    M14.A16      M14.A17      M14.A18  
+     118.25       112.58        71.84  
+
+my.best.mod <- lm(asnm ~ M2.A3 + M2.A7 + M6.A8 + M6.A23 + M7.A3 + M8.A7 + M8.A9 + M8.A23 + M9.A15 + M10.A9 + M10.A17 + M11.A8 + M11.A9 + M12.A10 + M14.A16 + M14.A17 + M14.A18, data = inci.3)
+
+> summary(my.best.mod)
+
+Call:
+lm(formula = asnm ~ M2.A3 + M2.A7 + M6.A8 + M6.A23 + M7.A3 + 
+    M8.A7 + M8.A9 + M8.A23 + M9.A15 + M10.A9 + M10.A17 + M11.A8 + 
+    M11.A9 + M12.A10 + M14.A16 + M14.A17 + M14.A18, data = inci.3)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-2209.96  -318.79    34.54   353.09  2281.18 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  1085.07      65.55  16.552  < 2e-16 ***
+M2.A3         -68.05      24.13  -2.820 0.004883 ** 
+M2.A7         -89.85      17.55  -5.121 3.52e-07 ***
+M6.A8        -184.63      35.34  -5.224 2.05e-07 ***
+M6.A23         48.82      13.93   3.504 0.000474 ***
+M7.A3         -59.39      14.44  -4.112 4.17e-05 ***
+M8.A7          63.96      18.89   3.387 0.000730 ***
+M8.A9          64.22      16.70   3.847 0.000126 ***
+M8.A23       -173.46      31.99  -5.423 7.05e-08 ***
+M9.A15         71.25      14.52   4.907 1.05e-06 ***
+M10.A9        156.25      14.11  11.070  < 2e-16 ***
+M10.A17       -31.65      13.62  -2.325 0.020234 *  
+M11.A8        -79.24      16.51  -4.801 1.77e-06 ***
+M11.A9         32.20      16.32   1.973 0.048693 *  
+M12.A10        34.05      13.26   2.568 0.010351 *  
+M14.A16       118.25      16.58   7.134 1.64e-12 ***
+M14.A17       112.58      13.69   8.222 4.98e-16 ***
+M14.A18        71.84      26.20   2.742 0.006200 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 500.3 on 1246 degrees of freedom
+Multiple R-squared:  0.573,	Adjusted R-squared:  0.5672 
+F-statistic: 98.36 on 17 and 1246 DF,  p-value: < 2.2e-16
+
+
+
+##### --------- OLD STUFF
+11_MyLogInWorkshop
+Workshop site:
+https://www.ebi.ac.uk/training/events/2019/cabana-workshop-genomic-analysis-crop-biodiversity-using-r
+
+IN the site:
+https://drive.google.com/drive/folders/1K1Ue01rVSeYoasq0JgDkFCtC_SiOqTIX
+
+mail.students <-
+"paiva.daniela@inta.gob.ar; veronicanoeibanez@gmail.com; kamynz16@gmail.com; bermudez.luisa@inta.gob.ar; morogo27@gmail.com; karla.yescasromo@gmail.com; ana.rodriguez@ciqa.edu.mx; yadhiraortizc@gmail.com; sunrey_rg@hotmail.com; nicosia.salvador@inta.gob.ar; montecchia.juan@inta.gob.ar; andresribone1994@gmail.com; griselda.arrieta@ucr.ac.cr; vflorelo@gmail.com; carlosap94@hotmail.com; leonardo.gaspar.c@upch.pe; buitrejma@gmail.com; joscett@gmail.com; chris_esc_san@hotmail.com; omarandres.gonzalez@alumno.buap.mx"
+
+mail.cc <-
+"piv@ebi.ac.uk; fehernan40@gmail.com; ximena.osorio@cinvestav.mx; mathgenome@gmail.com; jvillalobos886@gmail.com"
