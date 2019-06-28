@@ -78,3 +78,33 @@ plot(pc$x[,1],pc$x[,2],col="red",xlab="PC1",ylab="PC2")
 x<-as.data.frame(pc$x)
 a<-x[x$PC1<-4 & x$PC2>4,]
 row.names(a)
+
+# June 28, Exercise 1:
+head(sample)
+
+d =dist(t(for.pc),method = "euclidean")
+matrix_from_sample = as.matrix(d)
+matrix_from_sample
+#matrix_from_sample[38,3]
+#matrix_from_sample[3,38]
+
+#Colorear
+#max
+distant_objects = which(matrix_from_sample == max(matrix_from_sample), 
+                        arr.ind = TRUE)
+
+fit<-cmdscale(d,eig=T,k=2) #Object with two dimensions
+plot(fit$points[,1],fit$points[,2],
+     col="red",xlab = "X1",
+     ylab = "X2") #Plot the two variables
+
+x = as.data.frame(fit$points)
+isincore<-is.element(row.names(x),
+                     rownames(distant_objects)) #Core indicator vector
+x<-mutate(x, isincore=isincore)
+
+library(ggplot2)
+ggplot(x, aes(V1,V2,color=isincore))+
+  geom_point(alpha=2/3,size=2)
+
+
